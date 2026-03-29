@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { User, UserRole, AuthContextType } from '../types';
-import { users } from '../data/users';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 // Create Auth Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -10,79 +10,74 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const USER_STORAGE_KEY = 'business_nexus_user';
 const RESET_TOKEN_KEY = 'business_nexus_reset_token';
 
+const API_URL = 'http://localhost:5000/api';
+
 // Auth Provider Component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for stored user on initial load
   useEffect(() => {
-    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    const fetchUser = async () => {
+      const token = localStorage.getItem('nexus_token');
+      
+      if (token) {
+        try {
+          const config = {
+            headers: { Authorization: `Bearer ${token}` }
+          };
+          
+          const response = await axios.get(`${API_URL}/users/me`, config);
+          setUser(response.data);
+        } catch (error) {
+          // If the token is expired or invalid, log them out
+          console.error('Session expired');
+          localStorage.removeItem('nexus_token');
+          setUser(null);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    fetchUser();
   }, []);
 
-  // Mock login function - in a real app, this would make an API call
+
   const login = async (email: string, password: string, role: UserRole): Promise<void> => {
     setIsLoading(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
       
-      // Find user with matching email and role
-      const foundUser = users.find(u => u.email === email && u.role === role);
+      const { token, user } = response.data;
+      localStorage.setItem('nexus_token', token);
       
-      if (foundUser) {
-        setUser(foundUser);
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(foundUser));
-        toast.success('Successfully logged in!');
-      } else {
-        throw new Error('Invalid credentials or user not found');
-      }
-    } catch (error) {
-      toast.error((error as Error).message);
+      setUser(user);
+      toast.success('Successfully logged in!');
+
+
+    } catch (error:  any) {
+      const message = error.response?.data?.message || 'Login failed';
+      toast.error(message);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Mock register function - in a real app, this would make an API call
+
   const register = async (name: string, email: string, password: string, role: UserRole): Promise<void> => {
     setIsLoading(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Check if email already exists
-      if (users.some(u => u.email === email)) {
-        throw new Error('Email already in use');
-      }
-      
-      // Create new user
-      const newUser: User = {
-        id: `${role[0]}${users.length + 1}`,
-        name,
-        email,
-        role,
-        avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
-        bio: '',
-        isOnline: true,
-        createdAt: new Date().toISOString()
-      };
-      
-      // Add user to mock data
-      users.push(newUser);
-      
-      setUser(newUser);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
-      toast.success('Account created successfully!');
-    } catch (error) {
-      toast.error((error as Error).message);
+      await axios.post(`${API_URL}/auth/register`, { name, email, password, role });
+
+      toast.success('Account created! Please log in. ')
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Registration failed';
+      toast.error(message);
       throw error;
     } finally {
       setIsLoading(false);
@@ -137,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = (): void => {
     setUser(null);
-    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem('nexus_token');
     toast.success('Logged out successfully');
   };
 
