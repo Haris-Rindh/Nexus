@@ -1,0 +1,36 @@
+{
+  "info": {
+    "name": "Nexus API",
+    "description": "API Endpoints for Investor & Entrepreneur Collaboration Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        { "name": "Register", "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/register" } },
+        { "name": "Login", "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/login" } }
+      ]
+    },
+    {
+      "name": "Meetings",
+      "item": [
+        { "name": "Create Meeting", "request": { "method": "POST", "url": "{{baseUrl}}/api/meetings" } },
+        { "name": "Get Meetings", "request": { "method": "GET", "url": "{{baseUrl}}/api/meetings" } }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        { "name": "Upload Document", "request": { "method": "POST", "url": "{{baseUrl}}/api/documents" } }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        { "name": "Deposit", "request": { "method": "POST", "url": "{{baseUrl}}/api/payments/deposit" } },
+        { "name": "Withdraw", "request": { "method": "POST", "url": "{{baseUrl}}/api/payments/withdraw" } }
+      ]
+    }
+  ]
+}
