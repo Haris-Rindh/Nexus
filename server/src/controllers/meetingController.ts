@@ -1,18 +1,25 @@
-import { Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { Meeting } from '../models/Meeting';
 import { AuthRequest } from '../middleware/authMiddleware';
+import crypto from 'crypto';
+import { createNotification } from './notificationController';
 
-export const createMeeting = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createMeeting = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authReq = req as AuthRequest;
   try {
     const { attendeeId, title, description, startTime, endTime } = req.body;
     
-    // Conflict detection
+    // Conflict detection — only block if the SAME user has overlapping accepted/pending meetings
     const overlappingMeetings = await Meeting.find({
       $or: [
-         { organizer: req.user._id, status: { $in: ['pending', 'accepted'] } },
-         { attendee: req.user._id, status: { $in: ['pending', 'accepted'] } },
-         { organizer: attendeeId, status: { $in: ['pending', 'accepted'] } },
-         { attendee: attendeeId, status: { $in: ['pending', 'accepted'] } }
+         {
+           $or: [{ organizer: authReq.user._id }, { attendee: authReq.user._id }],
+           status: { $in: ['pending', 'accepted'] }
+         },
+         {
+           $or: [{ organizer: attendeeId }, { attendee: attendeeId }],
+           status: { $in: ['pending', 'accepted'] }
+         }
       ],
       startTime: { $lt: new Date(endTime) },
       endTime: { $gt: new Date(startTime) }
@@ -23,34 +30,44 @@ export const createMeeting = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    const roomId = crypto.randomUUID();
+    const meetingLink = `${process.env.FRONTEND_URL}/meetings/room/${roomId}`;
+
     const meeting = await Meeting.create({
-      organizer: req.user._id,
+      organizer: authReq.user._id,
       attendee: attendeeId,
       title,
       description,
       startTime,
-      endTime
+      endTime,
+      roomId,
+      meetingLink
     });
+
+    // Notify the attendee
+    await createNotification(attendeeId, 'meeting_request', `New meeting request: ${title}`, authReq.user._id.toString(), { meetingId: meeting._id });
 
     res.status(201).json(meeting);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    next(error);
   }
 };
 
-export const getMeetings = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getMeetings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authReq = req as AuthRequest;
   try {
     const meetings = await Meeting.find({
-      $or: [{ organizer: req.user._id }, { attendee: req.user._id }]
+      $or: [{ organizer: authReq.user._id }, { attendee: authReq.user._id }]
     }).populate('organizer', 'firstName lastName email').populate('attendee', 'firstName lastName email');
     
     res.json(meetings);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    next(error);
   }
 };
 
-export const updateMeetingStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateMeetingStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authReq = req as AuthRequest;
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -62,7 +79,7 @@ export const updateMeetingStatus = async (req: AuthRequest, res: Response): Prom
       return;
     }
 
-    if (meeting.organizer.toString() !== req.user._id.toString() && meeting.attendee.toString() !== req.user._id.toString()) {
+    if (meeting.organizer.toString() !== authReq.user._id.toString() && meeting.attendee.toString() !== authReq.user._id.toString()) {
        res.status(403).json({ message: 'Unauthorized' });
        return;
     }
@@ -70,8 +87,14 @@ export const updateMeetingStatus = async (req: AuthRequest, res: Response): Prom
     meeting.status = status;
     await meeting.save();
 
+    // Notify the organizer if attendee changed status
+    if (meeting.attendee.toString() === authReq.user._id.toString()) {
+      const action = status === 'accepted' ? 'accepted' : 'rejected';
+      await createNotification(meeting.organizer.toString(), 'meeting_response', `Meeting "${meeting.title}" has been ${action}`, authReq.user._id.toString(), { meetingId: meeting._id });
+    }
+
     res.json(meeting);
   } catch (error) {
-     res.status(500).json({ message: 'Server error' });
+     next(error);
   }
 };

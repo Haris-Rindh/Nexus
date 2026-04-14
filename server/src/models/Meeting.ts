@@ -8,6 +8,7 @@ const meetingSchema = new mongoose.Schema({
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
   status: { type: String, enum: ['pending', 'accepted', 'rejected', 'completed'], default: 'pending' },
+  roomId: { type: String }, // NEW: WebRTC UUID
   meetingLink: { type: String } // WebRTC room link
 }, { timestamps: true });
 

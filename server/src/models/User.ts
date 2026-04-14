@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['investor', 'entrepreneur'], required: true },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
+  avatarUrl: { type: String, default: '' },
+  isOnline: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 

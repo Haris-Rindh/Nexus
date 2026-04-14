@@ -1,51 +1,97 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, X, MessageCircle } from 'lucide-react';
-import { CollaborationRequest } from '../../types';
 import { Card, CardBody, CardFooter } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { findUserById } from '../../data/users';
-import { updateRequestStatus } from '../../data/collaborationRequests';
 import { formatDistanceToNow } from 'date-fns';
+import api from '../../utils/api';
+
+// The real backend uses senderId/receiverId (populated objects) not investorId/entrepreneurId
+interface CollabSenderReceiver {
+  _id?: string;
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  avatarUrl?: string;
+  isOnline?: boolean;
+}
+
+interface CollaborationRequestData {
+  _id?: string;
+  id?: string;
+  // Populated by .populate() on the server
+  senderId: CollabSenderReceiver | string;
+  receiverId: CollabSenderReceiver | string;
+  message: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+}
 
 interface CollaborationRequestCardProps {
-  request: CollaborationRequest;
+  request: CollaborationRequestData;
+  currentUserId?: string;
   onStatusUpdate?: (requestId: string, status: 'accepted' | 'rejected') => void;
 }
 
 export const CollaborationRequestCard: React.FC<CollaborationRequestCardProps> = ({
   request,
+  currentUserId,
   onStatusUpdate
 }) => {
   const navigate = useNavigate();
-  const investor = findUserById(request.investorId);
-  
-  if (!investor) return null;
-  
-  const handleAccept = () => {
-    updateRequestStatus(request.id, 'accepted');
-    if (onStatusUpdate) {
-      onStatusUpdate(request.id, 'accepted');
+
+  // The sender will be populated by the backend populate() call
+  const sender = typeof request.senderId === 'object' ? request.senderId as CollabSenderReceiver : null;
+  const receiver = typeof request.receiverId === 'object' ? request.receiverId as CollabSenderReceiver : null;
+
+  // Show the "other" person's info
+  const senderId = sender?._id || sender?.id || (request.senderId as string);
+  const receiverId = receiver?._id || receiver?.id || (request.receiverId as string);
+  const isRequester = currentUserId === senderId;
+  const otherPerson = isRequester ? receiver : sender;
+  const otherPersonId = isRequester ? receiverId : senderId;
+
+  const otherName = otherPerson
+    ? otherPerson.name || `${otherPerson.firstName || ''} ${otherPerson.lastName || ''}`.trim() || 'User'
+    : 'User';
+
+  const otherAvatarUrl = otherPerson?.avatarUrl ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(otherName)}&background=random`;
+
+  const requestId = (request._id || request.id || '').toString();
+
+  const handleAccept = async () => {
+    try {
+      await api.put(`/collaborations/${requestId}/status`, { status: 'accepted' });
+      if (onStatusUpdate) onStatusUpdate(requestId, 'accepted');
+    } catch (err) {
+      console.error('Failed to accept collaboration:', err);
     }
   };
-  
-  const handleReject = () => {
-    updateRequestStatus(request.id, 'rejected');
-    if (onStatusUpdate) {
-      onStatusUpdate(request.id, 'rejected');
+
+  const handleReject = async () => {
+    try {
+      await api.put(`/collaborations/${requestId}/status`, { status: 'rejected' });
+      if (onStatusUpdate) onStatusUpdate(requestId, 'rejected');
+    } catch (err) {
+      console.error('Failed to reject collaboration:', err);
     }
   };
-  
+
   const handleMessage = () => {
-    navigate(`/chat/${investor.id}`);
+    navigate(`/chat/${otherPersonId}`);
   };
-  
+
   const handleViewProfile = () => {
-    navigate(`/profile/investor/${investor.id}`);
+    const role = isRequester
+      ? (typeof request.receiverId === 'object' ? (request.receiverId as any).role : '')
+      : (typeof request.senderId === 'object' ? (request.senderId as any).role : '');
+    navigate(`/profile/${role}/${otherPersonId}`);
   };
-  
+
   const getStatusBadge = () => {
     switch (request.status) {
       case 'pending':
@@ -58,38 +104,38 @@ export const CollaborationRequestCard: React.FC<CollaborationRequestCardProps> =
         return null;
     }
   };
-  
+
   return (
     <Card className="transition-all duration-300">
       <CardBody className="flex flex-col">
         <div className="flex justify-between items-start">
           <div className="flex items-start">
             <Avatar
-              src={investor.avatarUrl}
-              alt={investor.name}
+              src={otherAvatarUrl}
+              alt={otherName}
               size="md"
-              status={investor.isOnline ? 'online' : 'offline'}
+              status={otherPerson?.isOnline ? 'online' : 'offline'}
               className="mr-3"
             />
-            
+
             <div>
-              <h3 className="text-md font-semibold text-gray-900">{investor.name}</h3>
+              <h3 className="text-md font-semibold text-gray-900">{otherName}</h3>
               <p className="text-sm text-gray-500">
                 {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
               </p>
             </div>
           </div>
-          
+
           {getStatusBadge()}
         </div>
-        
+
         <div className="mt-4">
           <p className="text-sm text-gray-600">{request.message}</p>
         </div>
       </CardBody>
-      
+
       <CardFooter className="border-t border-gray-100 bg-gray-50">
-        {request.status === 'pending' ? (
+        {request.status === 'pending' && !isRequester ? (
           <div className="flex justify-between w-full">
             <div className="space-x-2">
               <Button
@@ -109,7 +155,7 @@ export const CollaborationRequestCard: React.FC<CollaborationRequestCardProps> =
                 Accept
               </Button>
             </div>
-            
+
             <Button
               variant="primary"
               size="sm"
@@ -129,7 +175,7 @@ export const CollaborationRequestCard: React.FC<CollaborationRequestCardProps> =
             >
               Message
             </Button>
-            
+
             <Button
               variant="primary"
               size="sm"

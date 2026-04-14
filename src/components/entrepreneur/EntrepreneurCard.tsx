@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, ExternalLink } from 'lucide-react';
+import { MessageCircle, ExternalLink, Users } from 'lucide-react';
 import { Entrepreneur } from '../../types';
 import { Card, CardBody, CardFooter } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import api from '../../utils/api';
+import toast from 'react-hot-toast';
 
 interface EntrepreneurCardProps {
   entrepreneur: Entrepreneur;
@@ -17,14 +19,31 @@ export const EntrepreneurCard: React.FC<EntrepreneurCardProps> = ({
   showActions = true
 }) => {
   const navigate = useNavigate();
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
   
   const handleViewProfile = () => {
     navigate(`/profile/entrepreneur/${entrepreneur.id}`);
   };
   
   const handleMessage = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
+    e.stopPropagation();
     navigate(`/chat/${entrepreneur.id}`);
+  };
+
+  const handleCollaborationRequest = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      setIsSendingRequest(true);
+      await api.post('/collaborations', {
+        receiverId: entrepreneur.id,
+        message: `I'm interested in your startup and would love to explore collaboration opportunities.`
+      });
+      toast.success('Collaboration request sent!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to send request');
+    } finally {
+      setIsSendingRequest(false);
+    }
   };
   
   return (
@@ -74,7 +93,7 @@ export const EntrepreneurCard: React.FC<EntrepreneurCardProps> = ({
       </CardBody>
       
       {showActions && (
-        <CardFooter className="border-t border-gray-100 bg-gray-50 flex justify-between">
+        <CardFooter className="border-t border-gray-100 bg-gray-50 flex justify-between gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -82,6 +101,16 @@ export const EntrepreneurCard: React.FC<EntrepreneurCardProps> = ({
             onClick={handleMessage}
           >
             Message
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<Users size={16} />}
+            onClick={handleCollaborationRequest}
+            disabled={isSendingRequest}
+          >
+            {isSendingRequest ? 'Sending...' : 'Connect'}
           </Button>
           
           <Button

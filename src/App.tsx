@@ -8,6 +8,8 @@ import { DashboardLayout } from './components/layout/DashboardLayout';
 // Auth Pages
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 
 // Dashboard Pages
 import { EntrepreneurDashboard } from './pages/dashboard/EntrepreneurDashboard';
@@ -26,9 +28,17 @@ import { DocumentsPage } from './pages/documents/DocumentsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { HelpPage } from './pages/help/HelpPage';
 import { DealsPage } from './pages/deals/DealsPage';
+import PaymentDashboard from './pages/payments/PaymentDashboard';
 
 // Chat Pages
 import { ChatPage } from './pages/chat/ChatPage';
+
+// Meetings Pages
+import { MeetingsPage } from './pages/meetings/MeetingsPage';
+import VideoCallPage from './pages/meetings/VideoCallPage';
+
+// Collaboration
+import { CollaborationsPage } from './pages/collaboration/CollaborationsPage';
 
 function App() {
   return (
@@ -37,6 +47,8 @@ function App() {
         <Routes>
           {/* Authentication Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/register" element={<RegisterPage />} />
           
           {/* Dashboard Routes */}
@@ -83,11 +95,28 @@ function App() {
           <Route path="/deals" element={<DashboardLayout />}>
             <Route index element={<DealsPage />} />
           </Route>
+
+          {/* Payments Route */}
+          <Route path="/payments" element={<DashboardLayout />}>
+            <Route index element={<PaymentDashboard />} />
+          </Route>
           
           {/* Chat Routes */}
           <Route path="/chat" element={<DashboardLayout />}>
             <Route index element={<ChatPage />} />
             <Route path=":userId" element={<ChatPage />} />
+          </Route>
+
+          {/* Meetings Routes */}
+          <Route path="/meetings" element={<DashboardLayout />}>
+            <Route index element={<MeetingsPage />} />
+          </Route>
+          {/* Video call is fullscreen — no layout wrapper */}
+          <Route path="/meetings/room/:roomId" element={<VideoCallPage />} />
+
+          {/* Collaboration Routes */}
+          <Route path="/collaborations" element={<DashboardLayout />}>
+            <Route index element={<CollaborationsPage />} />
           </Route>
           
           {/* Redirect root to login */}

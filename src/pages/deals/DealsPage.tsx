@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Avatar } from '../../components/ui/Avatar';
+import toast from 'react-hot-toast';
 
 const deals = [
   {
@@ -51,6 +52,9 @@ const deals = [
 export const DealsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+  const [dealsList, setDealsList] = useState(deals);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newDeal, setNewDeal] = useState({ startup: '', industry: '', amount: '', equity: '', stage: 'Seed', status: 'Due Diligence' });
   
   const statuses = ['Due Diligence', 'Term Sheet', 'Negotiation', 'Closed', 'Passed'];
   
@@ -64,19 +68,33 @@ export const DealsPage: React.FC = () => {
   
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Due Diligence':
-        return 'primary';
-      case 'Term Sheet':
-        return 'secondary';
-      case 'Negotiation':
-        return 'accent';
-      case 'Closed':
-        return 'success';
-      case 'Passed':
-        return 'error';
-      default:
-        return 'gray';
+      case 'Due Diligence': return 'primary';
+      case 'Term Sheet': return 'secondary';
+      case 'Negotiation': return 'accent';
+      case 'Closed': return 'success';
+      case 'Passed': return 'error';
+      default: return 'gray';
     }
+  };
+
+  const handleAddDeal = () => {
+    if (!newDeal.startup || !newDeal.amount) {
+      toast.error('Startup name and amount are required');
+      return;
+    }
+    const deal = {
+      id: Date.now(),
+      startup: { name: newDeal.startup, logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(newDeal.startup)}&background=random`, industry: newDeal.industry || 'Technology' },
+      amount: newDeal.amount,
+      equity: newDeal.equity || 'TBD',
+      status: newDeal.status,
+      stage: newDeal.stage,
+      lastActivity: new Date().toISOString().split('T')[0]
+    };
+    setDealsList(prev => [...prev, deal]);
+    setShowAddModal(false);
+    setNewDeal({ startup: '', industry: '', amount: '', equity: '', stage: 'Seed', status: 'Due Diligence' });
+    toast.success('Deal added!');
   };
   
   return (
@@ -87,7 +105,7 @@ export const DealsPage: React.FC = () => {
           <p className="text-gray-600">Track and manage your investment pipeline</p>
         </div>
         
-        <Button>
+        <Button onClick={() => setShowAddModal(true)}>
           Add Deal
         </Button>
       </div>
@@ -168,14 +186,15 @@ export const DealsPage: React.FC = () => {
             <Filter size={18} className="text-gray-500" />
             <div className="flex flex-wrap gap-2">
               {statuses.map(status => (
-                <Badge
+                <button
                   key={status}
-                  variant={selectedStatus.includes(status) ? getStatusColor(status) : 'gray'}
-                  className="cursor-pointer"
+                  type="button"
                   onClick={() => toggleStatus(status)}
                 >
-                  {status}
-                </Badge>
+                  <Badge variant={selectedStatus.includes(status) ? getStatusColor(status) : 'gray'}>
+                    {status}
+                  </Badge>
+                </button>
               ))}
             </div>
           </div>
@@ -216,7 +235,15 @@ export const DealsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {deals.map(deal => (
+                {dealsList
+                  .filter(deal => {
+                    const matchesSearch = searchQuery === '' ||
+                      deal.startup.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      deal.startup.industry.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesStatus = selectedStatus.length === 0 || selectedStatus.includes(deal.status);
+                    return matchesSearch && matchesStatus;
+                  })
+                  .map(deal => (
                   <tr key={deal.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -267,6 +294,92 @@ export const DealsPage: React.FC = () => {
           </div>
         </CardBody>
       </Card>
+
+      {/* Add Deal Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Add New Deal</h2>
+              <button onClick={() => setShowAddModal(false)} className="p-2 rounded-lg hover:bg-gray-100 transition">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Startup Name *</label>
+                <input
+                  type="text"
+                  value={newDeal.startup}
+                  onChange={e => setNewDeal(p => ({ ...p, startup: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-300 p-3 text-sm outline-none focus:border-primary-500"
+                  placeholder="e.g. TechWave AI"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                  <input
+                    type="text"
+                    value={newDeal.industry}
+                    onChange={e => setNewDeal(p => ({ ...p, industry: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 p-3 text-sm outline-none focus:border-primary-500"
+                    placeholder="e.g. FinTech"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
+                  <input
+                    type="text"
+                    value={newDeal.amount}
+                    onChange={e => setNewDeal(p => ({ ...p, amount: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 p-3 text-sm outline-none focus:border-primary-500"
+                    placeholder="e.g. $1.5M"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Equity</label>
+                  <input
+                    type="text"
+                    value={newDeal.equity}
+                    onChange={e => setNewDeal(p => ({ ...p, equity: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 p-3 text-sm outline-none focus:border-primary-500"
+                    placeholder="e.g. 15%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stage</label>
+                  <select
+                    value={newDeal.stage}
+                    onChange={e => setNewDeal(p => ({ ...p, stage: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 p-3 text-sm outline-none focus:border-primary-500"
+                  >
+                    <option>Pre-seed</option>
+                    <option>Seed</option>
+                    <option>Series A</option>
+                    <option>Series B</option>
+                    <option>Series C+</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={newDeal.status}
+                  onChange={e => setNewDeal(p => ({ ...p, status: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-300 p-3 text-sm outline-none focus:border-primary-500"
+                >
+                  {statuses.map(s => <option key={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                <Button onClick={handleAddDeal}>Add Deal</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

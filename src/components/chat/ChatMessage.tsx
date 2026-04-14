@@ -1,27 +1,50 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Message } from '../../types';
 import { Avatar } from '../ui/Avatar';
-import { findUserById } from '../../data/users';
 
-interface ChatMessageProps {
-  message: Message;
-  isCurrentUser: boolean;
+interface ChatMessageData {
+  id?: string;
+  _id?: string;
+  senderId: string;
+  receiverId?: string;
+  content: string;
+  // API returns `createdAt`; normalized shape also adds `timestamp`
+  timestamp?: string;
+  createdAt?: string;
+  isRead?: boolean;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isCurrentUser }) => {
-  const user = findUserById(message.senderId);
-  
-  if (!user) return null;
-  
+interface ChatMessageProps {
+  message: ChatMessageData;
+  isCurrentUser: boolean;
+  senderAvatarUrl?: string;
+  senderName?: string;
+}
+
+export const ChatMessage: React.FC<ChatMessageProps> = ({
+  message,
+  isCurrentUser,
+  senderAvatarUrl,
+  senderName = 'User'
+}) => {
+  // Support both `timestamp` (normalized) and `createdAt` (raw DB) field names
+  const timeValue = message.timestamp || message.createdAt;
+  const displayTime = timeValue
+    ? formatDistanceToNow(new Date(timeValue), { addSuffix: true })
+    : '';
+
+  const avatarSrc =
+    senderAvatarUrl ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}&background=random`;
+
   return (
     <div
       className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4 animate-fade-in`}
     >
       {!isCurrentUser && (
         <Avatar
-          src={user.avatarUrl}
-          alt={user.name}
+          src={avatarSrc}
+          alt={senderName}
           size="sm"
           className="mr-2 self-end"
         />
@@ -38,15 +61,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isCurrentUser
           <p className="text-sm">{message.content}</p>
         </div>
         
-        <span className="text-xs text-gray-500 mt-1">
-          {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
-        </span>
+        {displayTime && (
+          <span className="text-xs text-gray-500 mt-1">{displayTime}</span>
+        )}
       </div>
       
       {isCurrentUser && (
         <Avatar
-          src={user.avatarUrl}
-          alt={user.name}
+          src={avatarSrc}
+          alt={senderName}
           size="sm"
           className="ml-2 self-end"
         />

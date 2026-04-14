@@ -6,36 +6,56 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { CollaborationRequestCard } from '../../components/collaboration/CollaborationRequestCard';
 import { InvestorCard } from '../../components/investor/InvestorCard';
-import { useAuth } from '../../context/AuthContext';
-import { CollaborationRequest } from '../../types';
-import { getRequestsForEntrepreneur } from '../../data/collaborationRequests';
-import { investors } from '../../data/users';
+import { useAuth } from '../../context/useAuth';
+import { Investor } from '../../types';
+import api from '../../utils/api';
 
 export const EntrepreneurDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [collaborationRequests, setCollaborationRequests] = useState<CollaborationRequest[]>([]);
-  const [recommendedInvestors, setRecommendedInvestors] = useState(investors.slice(0, 3));
-  
+  const [collaborationRequests, setCollaborationRequests] = useState<any[]>([]);
+  const [recommendedInvestors, setRecommendedInvestors] = useState<Investor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    if (user) {
-      // Load collaboration requests
-      const requests = getRequestsForEntrepreneur(user.id);
-      setCollaborationRequests(requests);
-    }
+    const fetchDashboardData = async () => {
+      if (!user) return;
+      try {
+        setIsLoading(true);
+        // Replace mock with actual API calls
+        const [requestsRes, investorsRes] = await Promise.all([
+          api.get('/collaborations').catch(() => ({ data: [] })),
+          api.get('/profiles/investors').catch(() => ({ data: [] }))
+        ]);
+
+        setCollaborationRequests(requestsRes.data || []);
+        // Safely map and slice actual investors returned
+        setRecommendedInvestors((investorsRes.data || []).slice(0, 3));
+      } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, [user]);
-  
+
   const handleRequestStatusUpdate = (requestId: string, status: 'accepted' | 'rejected') => {
-    setCollaborationRequests(prevRequests => 
-      prevRequests.map(req => 
-        req.id === requestId ? { ...req, status } : req
+    setCollaborationRequests((prevRequests: any[]) =>
+      prevRequests.map((req: any) =>
+        (req._id || req.id) === requestId ? { ...req, status } : req
       )
     );
   };
-  
+
   if (!user) return null;
-  
+
+  if (isLoading) {
+    return <div className="p-8 text-center text-lg text-gray-500 font-medium">Loading Dashboard Data...</div>;
+  }
+
   const pendingRequests = collaborationRequests.filter(req => req.status === 'pending');
-  
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
@@ -43,7 +63,7 @@ export const EntrepreneurDashboard: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Welcome, {user.name}</h1>
           <p className="text-gray-600">Here's what's happening with your startup today</p>
         </div>
-        
+
         <Link to="/investors">
           <Button
             leftIcon={<PlusCircle size={18} />}
@@ -52,7 +72,7 @@ export const EntrepreneurDashboard: React.FC = () => {
           </Button>
         </Link>
       </div>
-      
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary-50 border border-primary-100">
@@ -68,7 +88,7 @@ export const EntrepreneurDashboard: React.FC = () => {
             </div>
           </CardBody>
         </Card>
-        
+
         <Card className="bg-secondary-50 border border-secondary-100">
           <CardBody>
             <div className="flex items-center">
@@ -84,7 +104,7 @@ export const EntrepreneurDashboard: React.FC = () => {
             </div>
           </CardBody>
         </Card>
-        
+
         <Card className="bg-accent-50 border border-accent-100">
           <CardBody>
             <div className="flex items-center">
@@ -98,7 +118,7 @@ export const EntrepreneurDashboard: React.FC = () => {
             </div>
           </CardBody>
         </Card>
-        
+
         <Card className="bg-success-50 border border-success-100">
           <CardBody>
             <div className="flex items-center">
@@ -113,7 +133,7 @@ export const EntrepreneurDashboard: React.FC = () => {
           </CardBody>
         </Card>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Collaboration requests */}
         <div className="lg:col-span-2 space-y-4">
@@ -122,14 +142,15 @@ export const EntrepreneurDashboard: React.FC = () => {
               <h2 className="text-lg font-medium text-gray-900">Collaboration Requests</h2>
               <Badge variant="primary">{pendingRequests.length} pending</Badge>
             </CardHeader>
-            
+
             <CardBody>
               {collaborationRequests.length > 0 ? (
                 <div className="space-y-4">
-                  {collaborationRequests.map(request => (
+                  {collaborationRequests.map((request: any) => (
                     <CollaborationRequestCard
-                      key={request.id}
+                      key={request._id || request.id}
                       request={request}
+                      currentUserId={user.id}
                       onStatusUpdate={handleRequestStatusUpdate}
                     />
                   ))}
@@ -146,7 +167,7 @@ export const EntrepreneurDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </div>
-        
+
         {/* Recommended investors */}
         <div className="space-y-4">
           <Card>
@@ -156,15 +177,17 @@ export const EntrepreneurDashboard: React.FC = () => {
                 View all
               </Link>
             </CardHeader>
-            
+
             <CardBody className="space-y-4">
-              {recommendedInvestors.map(investor => (
+              {recommendedInvestors.length > 0 ? recommendedInvestors.map(investor => (
                 <InvestorCard
                   key={investor.id}
                   investor={investor}
                   showActions={false}
                 />
-              ))}
+              )) : (
+                <p className="text-sm text-gray-500">No recommended investors available at this time.</p>
+              )}
             </CardBody>
           </Card>
         </div>
