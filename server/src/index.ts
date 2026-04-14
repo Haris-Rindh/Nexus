@@ -135,6 +135,12 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     socket.to(roomId).emit('user-connected', uId || userId);
 
+    // Feature task: emit real-time notification when user joins a room
+    io.to(roomId).emit('notification', { 
+      message: `A new user joined the meeting room: ${roomId}`,
+      timestamp: new Date()
+    });
+
     // Broadcast audio toggle to others in the room
     socket.on('toggle-audio', ({ roomId: rId, muted }) => {
       socket.to(rId || roomId).emit('user-toggled-audio', uId || userId, muted);

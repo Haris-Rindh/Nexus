@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, Building2, MapPin, UserCircle, BarChart3, Briefcase } from 'lucide-react';
 import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
@@ -11,6 +11,7 @@ import api from '../../utils/api';
 export const InvestorProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const [investor, setInvestor] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,7 +101,7 @@ export const InvestorProfile: React.FC = () => {
             )}
 
             {isCurrentUser && (
-              <Button variant="outline" leftIcon={<UserCircle size={18} />}>
+              <Button variant="outline" leftIcon={<UserCircle size={18} />} onClick={() => navigate('/settings')}>
                 Edit Profile
               </Button>
             )}

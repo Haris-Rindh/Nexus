@@ -3,7 +3,8 @@ import {
   processDeposit, 
   processWithdrawal, 
   processTransfer, 
-  getTransactionHistory 
+  getTransactionHistory,
+  createPaymentIntent
 } from '../controllers/paymentController';
 import { protect, AuthRequest } from '../middleware/authMiddleware';
 import { validateRequest, paymentSchema } from '../middleware/validationMiddleware';
@@ -45,5 +46,7 @@ router.post('/transfer', protect, processTransfer);
  *     tags: [Payments]
  */
 router.route('/history').get(protect, getTransactionHistory);
+
+router.post('/create-intent', protect, createPaymentIntent);
 
 export default router;

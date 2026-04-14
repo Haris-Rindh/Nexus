@@ -9,10 +9,12 @@ import { ChatUserList } from '../../components/chat/ChatUserList';
 import { useAuth } from '../../context/useAuth';
 import api from '../../utils/api';
 import { io, Socket } from 'socket.io-client';
+import { useNavigate } from 'react-router-dom';
 
 export const ChatPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -166,10 +168,10 @@ export const ChatPage: React.FC = () => {
               </div>
 
               <div className="flex space-x-2">
-                <Button variant="ghost" size="sm" className="rounded-full p-2" aria-label="Voice call">
+                <Button variant="ghost" size="sm" className="rounded-full p-2" aria-label="Voice call" onClick={() => navigate(`/meetings/room/${userId || chatPartner.id}`)}>
                   <Phone size={18} />
                 </Button>
-                <Button variant="ghost" size="sm" className="rounded-full p-2" aria-label="Video call">
+                <Button variant="ghost" size="sm" className="rounded-full p-2" aria-label="Video call" onClick={() => navigate(`/meetings/room/${userId || chatPartner.id}`)}>
                   <Video size={18} />
                 </Button>
                 <Button variant="ghost" size="sm" className="rounded-full p-2" aria-label="Info">

@@ -88,3 +88,22 @@ export const getTransactionHistory = async (req: Request, res: Response, next: N
     next(error);
   }
 };
+
+export const createPaymentIntent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { amount, currency = 'usd' } = req.body;
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // cents
+      currency,
+      payment_method_types: ['card'],
+    });
+
+    res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    console.error('Stripe Intent Error:', error);
+    next(error);
+  }
+};

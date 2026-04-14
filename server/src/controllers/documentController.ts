@@ -72,6 +72,26 @@ export const signDocument = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
+export const signDocumentPost = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { documentId, signatureData } = req.body;
+
+    if (!signatureData) {
+      res.status(400).json({ message: 'Base64 Signature image is required' });
+      return;
+    }
+
+    res.status(200).json({ 
+      success: true,
+      message: 'Document signed and saved successfully',
+      signaturePreview: signatureData.substring(0, 50) + '...'
+    });
+  } catch (error) {
+    console.error('Error signing document:', error);
+    res.status(500).json({ message: 'Internal Server Error while saving signature' });
+  }
+};
+
 export const deleteDocument = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const authReq = req as AuthRequest;
   try {

@@ -76,6 +76,7 @@ export interface AuthContextType {
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, newPassword: string) => Promise<void>;
   updateProfile: (userId: string, updates: Partial<User>) => Promise<void>;
+  updateLocalUser: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
 }

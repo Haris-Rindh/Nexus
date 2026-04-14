@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Wallet, ArrowDownLeft, ArrowUpRight, CheckCircle2, History, ShieldCheck, Send, Loader2 } from 'lucide-react';
+import { Wallet, ArrowDownLeft, ArrowUpRight, History, Send, Loader2 } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import { StripePaymentForm } from '../../components/payments/StripePaymentForm';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_TYooMQauvdEDq54NiTphI7jx');
 
 // Interface for transactions
 interface Transaction {
@@ -126,7 +131,7 @@ const PaymentDashboard: React.FC = () => {
   };
 
   const tabClass = (t: ActiveTab) =>
-    `flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all ${
+    `flex-1 flex flex-col xl:flex-row items-center justify-center gap-1 xl:gap-2 py-2 xl:py-3 px-2 rounded-xl font-semibold text-xs xl:text-sm transition-all whitespace-nowrap ${
       activeTab === t
         ? 'bg-blue-600 text-white shadow-md'
         : 'text-gray-600 hover:bg-gray-100'
@@ -135,16 +140,16 @@ const PaymentDashboard: React.FC = () => {
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-8 font-sans animate-in fade-in duration-500">
       <div className="mb-8">
-        <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center space-x-3">
+        <h1 className="text-4xl font-extrabold text-gray-900 dark:racking-tight flex items-center space-x-3">
           <Wallet className="w-10 h-10 text-blue-600" />
           <span>Financial Dashboard</span>
         </h1>
         <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">Manage your funds, deposits, and transaction history.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 min-w-0">
         {/* ─── Left Panel ─── */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-5 xl:col-span-4 space-y-6 min-w-0">
           {/* Balance Card */}
           <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-blue-800 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity"></div>
@@ -157,20 +162,20 @@ const PaymentDashboard: React.FC = () => {
               <div className="flex space-x-4">
                 <button
                   onClick={() => setActiveTab('deposit')}
-                  className={`flex-1 backdrop-blur-md transition-colors py-3 rounded-xl flex items-center justify-center space-x-2 font-semibold ${
+                  className={`flex-1 backdrop-blur-md transition-colors py-3 px-2 rounded-xl flex items-center justify-center space-x-1 sm:space-x-2 font-semibold text-sm sm:text-base ${
                     activeTab === 'deposit' ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
                   }`}
                 >
-                  <ArrowDownLeft className="w-5 h-5" />
+                  <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Deposit</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('withdraw')}
-                  className={`flex-1 backdrop-blur-md transition-colors py-3 rounded-xl flex items-center justify-center space-x-2 font-semibold ${
+                  className={`flex-1 backdrop-blur-md transition-colors py-3 px-2 rounded-xl flex items-center justify-center space-x-1 sm:space-x-2 font-semibold text-sm sm:text-base ${
                     activeTab === 'withdraw' ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
                   }`}
                 >
-                  <ArrowUpRight className="w-5 h-5" />
+                  <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Withdraw</span>
                 </button>
               </div>
@@ -180,68 +185,23 @@ const PaymentDashboard: React.FC = () => {
           {/* Action Forms Card */}
           <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800 shadow-xl">
             {/* Tab Switch */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6">
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 overflow-x-auto hide-scrollbar">
               <button className={tabClass('deposit')} onClick={() => setActiveTab('deposit')}>
-                <ArrowDownLeft className="w-4 h-4" /> Deposit
+                <ArrowDownLeft className="w-4 h-4 shrink-0" /> Deposit
               </button>
               <button className={tabClass('withdraw')} onClick={() => setActiveTab('withdraw')}>
-                <ArrowUpRight className="w-4 h-4" /> Withdraw
+                <ArrowUpRight className="w-4 h-4 shrink-0" /> Withdraw
               </button>
               <button className={tabClass('transfer')} onClick={() => setActiveTab('transfer')}>
-                <Send className="w-4 h-4" /> Transfer
+                <Send className="w-4 h-4 shrink-0" /> Transfer
               </button>
             </div>
 
             {/* ── Deposit Form ── */}
             {activeTab === 'deposit' && (
-              <form onSubmit={handleDeposit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    <CreditCard className="inline w-4 h-4 mr-1" />Amount (USD)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
-                    <input 
-                      type="number"
-                      required
-                      min="1"
-                      className="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                      placeholder="10,000"
-                      value={depositAmount}
-                      onChange={e => setDepositAmount(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    Card Details (Mock)
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="Card Number — e.g. 4242 4242 4242 4242" 
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input type="text" placeholder="MM/YY" className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 outline-none focus:ring-2 focus:ring-blue-500" />
-                    <input type="text" placeholder="CVC" className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                </div>
-
-                <button 
-                  type="submit" 
-                  disabled={isProcessingDeposit}
-                  className="w-full mt-2 flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98]"
-                >
-                  {isProcessingDeposit ? (
-                    <><Loader2 className="animate-spin w-5 h-5" /><span>Processing...</span></>
-                  ) : showDepositSuccess ? (
-                    <><CheckCircle2 className="w-5 h-5" /><span>Success!</span></>
-                  ) : (
-                    <><ShieldCheck className="w-5 h-5" /><span>Deposit Funds</span></>
-                  )}
-                </button>
-              </form>
+              <Elements stripe={stripePromise}>
+                <StripePaymentForm />
+              </Elements>
             )}
 
             {/* ── Withdraw Form ── */}
@@ -258,7 +218,7 @@ const PaymentDashboard: React.FC = () => {
                       required
                       min="1"
                       max={balance}
-                      className="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                       placeholder="5,000"
                       value={withdrawAmount}
                       onChange={e => setWithdrawAmount(e.target.value)}
@@ -306,7 +266,7 @@ const PaymentDashboard: React.FC = () => {
                       type="number"
                       required
                       min="1"
-                      className="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                       placeholder="25,000"
                       value={transferAmount}
                       onChange={e => setTransferAmount(e.target.value)}
@@ -359,7 +319,7 @@ const PaymentDashboard: React.FC = () => {
         </div>
 
         {/* ─── Right Panel: Transaction History ─── */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-7 xl:col-span-8 min-w-0">
           <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xl overflow-hidden h-full">
             <div className="p-6 md:p-8 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center space-x-2">
@@ -381,7 +341,7 @@ const PaymentDashboard: React.FC = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-800">
                       <th className="py-4 px-6 font-semibold text-sm text-gray-500 dark:text-gray-400">Date</th>

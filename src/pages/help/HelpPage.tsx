@@ -3,6 +3,7 @@ import { Search, Book, MessageCircle, Phone, Mail, ExternalLink } from 'lucide-r
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import toast from 'react-hot-toast';
 
 const faqs = [
   {
@@ -55,6 +56,7 @@ export const HelpPage: React.FC = () => {
               variant="outline"
               className="mt-4"
               rightIcon={<ExternalLink size={16} />}
+              onClick={() => toast.success('Opening documentation...')}
             >
               View Docs
             </Button>
@@ -70,7 +72,7 @@ export const HelpPage: React.FC = () => {
             <p className="text-sm text-gray-600 mt-2">
               Chat with our support team in real-time
             </p>
-            <Button className="mt-4">
+            <Button className="mt-4" onClick={() => toast.success('Connecting to support agent...')}>
               Start Chat
             </Button>
           </CardBody>
@@ -89,6 +91,7 @@ export const HelpPage: React.FC = () => {
               variant="outline"
               className="mt-4"
               leftIcon={<Mail size={16} />}
+              onClick={() => toast.success('Opening contact center...')}
             >
               Contact Support
             </Button>
@@ -123,17 +126,26 @@ export const HelpPage: React.FC = () => {
           <h2 className="text-lg font-medium text-gray-900">Still need help?</h2>
         </CardHeader>
         <CardBody>
-          <form className="space-y-6 max-w-2xl">
+          <form 
+            className="space-y-6 max-w-2xl"
+            onSubmit={(e) => {
+              e.preventDefault();
+              toast.success('Your message has been sent to our support team!');
+              (e.target as HTMLFormElement).reset();
+            }}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 label="Name"
                 placeholder="Your name"
+                required
               />
               
               <Input
                 label="Email"
                 type="email"
                 placeholder="your@email.com"
+                required
               />
             </div>
             
@@ -142,14 +154,15 @@ export const HelpPage: React.FC = () => {
                 Message
               </label>
               <textarea
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                required
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 p-3"
                 rows={4}
                 placeholder="How can we help you?"
               ></textarea>
             </div>
             
             <div>
-              <Button>
+              <Button type="submit">
                 Send Message
               </Button>
             </div>

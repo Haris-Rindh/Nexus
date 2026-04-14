@@ -7,6 +7,7 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../../utils/api';
+import { useAuth } from '../../context/useAuth';
 
 // The real backend uses senderId/receiverId (populated objects) not investorId/entrepreneurId
 interface CollabSenderReceiver {
@@ -42,6 +43,7 @@ export const CollaborationRequestCard: React.FC<CollaborationRequestCardProps> =
   onStatusUpdate
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // The sender will be populated by the backend populate() call
   const sender = typeof request.senderId === 'object' ? request.senderId as CollabSenderReceiver : null;
@@ -86,10 +88,9 @@ export const CollaborationRequestCard: React.FC<CollaborationRequestCardProps> =
   };
 
   const handleViewProfile = () => {
-    const role = isRequester
-      ? (typeof request.receiverId === 'object' ? (request.receiverId as any).role : '')
-      : (typeof request.senderId === 'object' ? (request.senderId as any).role : '');
-    navigate(`/profile/${role}/${otherPersonId}`);
+    // Statistically, the other person is always the opposite role of the current user
+    const targetRole = user?.role === 'entrepreneur' ? 'investor' : 'entrepreneur';
+    navigate(`/profile/${targetRole}/${otherPersonId}`);
   };
 
   const getStatusBadge = () => {

@@ -162,6 +162,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateLocalUser = (updates: Partial<User>): void => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+    }
+  };
+
   const value = {
     user,
     login,
@@ -170,6 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     forgotPassword,
     resetPassword,
     updateProfile,
+    updateLocalUser,
     isAuthenticated: !!user,
     isLoading
   };
